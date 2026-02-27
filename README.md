@@ -7,6 +7,9 @@ Flask web application implementing secure multi-step user registration with phon
 - Phone number verification via Telegram OTP (6-digit code, 5-minute expiry)
 - Strong password enforcement (8+ chars, uppercase, lowercase, digit, special character)
 - TOTP-based 2FA with QR code for authenticator apps (Google Authenticator, Authy, etc.)
+- Login with password + TOTP verification
+- PIN-based session locking with configurable inactivity timeout
+- Password recovery via Telegram OTP (with PIN verification if set)
 - Password hashing with bcrypt
 - SQLite storage
 
@@ -17,7 +20,9 @@ Flask web application implementing secure multi-step user registration with phon
 │   ├── __init__.py               # Flask app factory, DB init
 │   ├── config.py                 # Configuration from .env
 │   ├── routes/
-│   │   └── registration.py       # Multi-step registration workflow
+│   │   ├── registration.py       # Multi-step registration workflow
+│   │   ├── login.py              # Login, 2FA, PIN, dashboard
+│   │   └── recovery.py           # Password recovery workflow
 │   ├── services/
 │   │   ├── database.py           # SQLite operations
 │   │   ├── otp_service.py        # OTP generation and verification
@@ -27,9 +32,19 @@ Flask web application implementing secure multi-step user registration with phon
 │   │   ├── verify.html           # Step 2: OTP verification
 │   │   ├── password.html         # Step 3: Password creation
 │   │   ├── setup_2fa.html        # Step 4: QR code for 2FA
-│   │   └── complete.html         # Success page
+│   │   ├── complete.html         # Success page
+│   │   ├── login.html            # Login form
+│   │   ├── login_2fa.html        # TOTP verification
+│   │   ├── set_pin.html          # First-time PIN setup
+│   │   ├── enter_pin.html        # PIN entry (session unlock)
+│   │   ├── dashboard.html        # Authenticated dashboard
+│   │   ├── recover.html          # Recovery: enter phone
+│   │   ├── recover_verify.html   # Recovery: OTP verification
+│   │   ├── recover_pin.html      # Recovery: PIN verification
+│   │   └── recover_reset.html    # Recovery: new password
 │   └── utils/
-│       └── validators.py         # Password validation rules
+│       ├── validators.py         # Password validation rules
+│       └── auth.py               # Authentication decorator
 ├── bot.py                        # Telegram bot (provides Chat ID)
 ├── run.py                        # Entry point
 ├── requirements.txt              # Dependencies
@@ -52,7 +67,10 @@ Create a `.env` file:
 ```
 BOT_TOKEN=your_telegram_bot_token
 SECRET_KEY=your_flask_secret_key
+PIN_LOCK_TIMEOUT=300
 ```
+
+`PIN_LOCK_TIMEOUT` — session inactivity timeout in seconds before PIN re-entry is required (default: 300).
 
 ## Usage
 
@@ -80,6 +98,22 @@ The app runs at `http://localhost:5000`.
 6. User scans a QR code with an authenticator app and confirms the TOTP code
 7. Registration is complete, user data is saved to the database
 
+## Login Flow
+
+1. User enters phone number and password
+2. User enters a TOTP code from their authenticator app
+3. On first login, user sets a PIN (4–6 digits); on subsequent logins, user enters their PIN
+4. User is redirected to the dashboard
+5. After inactivity (configurable via `PIN_LOCK_TIMEOUT`), the session locks and requires PIN re-entry
+
+## Password Recovery Flow
+
+1. User enters their phone number
+2. A 6-digit OTP is sent via Telegram
+3. User verifies the OTP code
+4. If a PIN is set, user must verify it
+5. User sets a new password
+
 ## Database Schema
 
 ```sql
@@ -89,6 +123,7 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     totp_secret TEXT NOT NULL,
     chat_id TEXT,
+    pin_hash TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```

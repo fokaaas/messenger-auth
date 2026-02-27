@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 60px auto; padding: 0 20px; }
+        h2 { color: #333; }
+        form { display: flex; flex-direction: column; gap: 12px; }
+        label { font-weight: bold; color: #555; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        button { padding: 12px; background: #0088cc; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        button:hover { background: #006699; }
+        .error { color: red; margin-bottom: 10px; }
+        .success { color: #28a745; margin-bottom: 10px; }
+        .links { margin-top: 16px; font-size: 14px; }
+        .links a { color: #0088cc; text-decoration: none; }
+        .links a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h2>Login</h2>
+    <p>Enter your phone number and password</p>
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+    {% if success %}
+        <div class="success">{{ success }}</div>
+    {% endif %}
+    <form method="POST">
+        <label for="phone">Phone Number</label>
+        <input type="tel" id="phone" name="phone" placeholder="+1234567890" required>
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+
+        <button type="submit">Login</button>
+    </form>
+    <div class="links">
+        <a href="/recover">Forgot password?</a> | <a href="/register">Register</a>
+    </div>
+</body>
+</html>
